@@ -617,6 +617,8 @@ LikelihoodCal_ST <- function(tree, muts, cell_state_labels, state_lineages, loc,
     }
   }
 
+  spatial_loss <- 0
+  if (lambda2 != 0) {
   ## --- MESSAGE PASSING: locations ---
   # --- Parameters for Brownian spatial model ---
   sigma2 <- 1.0   # diffusion variance per unit branch length
@@ -696,6 +698,7 @@ LikelihoodCal_ST <- function(tree, muts, cell_state_labels, state_lineages, loc,
 
   # If you want base-2 logs to match the rest:
   spatial_loss <- spatial_loglik / log(2)
+  }
 
   ## --- Compute proper state transition likelihood ---
   if (nrow(state_transitions) > 0) {
