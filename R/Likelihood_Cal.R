@@ -534,7 +534,9 @@ LikelihoodCal_ST <- function(tree, muts, cell_state_labels, state_lineages, loc,
 
   # extend mutation table for internal nodes
   allele_unique <- unique(unlist(muts))
-  muts <- rbind(muts, matrix(0, length(nodes_internal), N_char))
+  muts_internal <- matrix("0", length(nodes_internal), N_char,
+                          dimnames = list(NULL, colnames(muts)))
+  muts <- rbind(muts, muts_internal)
   internal_lookup <- data.frame(node = numeric(), index = numeric())
 
   # storage for state transitions
