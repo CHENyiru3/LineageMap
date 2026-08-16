@@ -267,7 +267,7 @@ run_chain <- function(chain_id, seeds, muts_leaves, df_spatial_continuous, phyla
   # Initial likelihood evaluation
   returnlist <- LikelihoodCal_ST(
     tree, muts, df_spatial_continuous$state, phyla, loc_data,
-    lambda1 = 0, lambda2 = 0.1, alpha = 1
+    lambda1 = lambda1, lambda2 = lambda2, alpha = alpha
   )
 
   max_likelihood <- returnlist$likelihood
