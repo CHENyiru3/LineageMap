@@ -98,7 +98,7 @@ FindBestTree <- function(muts,meta, labels, state_lineages, newick_lookup = NULL
 
 
   lambda_values <- seq(0.5, 1, length.out = n_chains)
-  results <- mclapply(
+  results <- parallel::mclapply(
     1:n_chains,
     function(chain_id) run_chain(chain_id, seeds, muts, meta, state_lineages, maxIter = maxIter,lambda_restart = lambda_values[chain_id],lambda1 = lambda1,lambda2 = lambda2,alpha = alpha),
     mc.cores = n_chains
@@ -151,7 +151,7 @@ Build_LineageMap_parallel <- function(muts, meta, state_lineages,
   dt <- returnList[[2]]
 
   # Parallelise across subgroups
-  subtree_list <- mclapply(1:nrow(dt), function(i) {
+  subtree_list <- parallel::mclapply(1:nrow(dt), function(i) {
     cellids <- unlist(dt$cells[i])
     muts_sub <- muts[cellids, ]
     meta_sub <- meta[cellids, ]
@@ -220,7 +220,7 @@ Build_LineageMap_pd <- function(muts, meta, state_lineages,
   dt <- returnList[[2]]
   #browser()
   # Parallelise across subgroups
-  subtree_list <- mclapply(1:nrow(dt), function(i) {
+  subtree_list <- parallel::mclapply(1:nrow(dt), function(i) {
     cellids <- unlist(dt$cells[i])
     muts_sub <- muts[cellids, ]
     meta_sub <- meta[cellids, ]
