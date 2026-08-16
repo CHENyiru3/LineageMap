@@ -1,3 +1,14 @@
+stop_on_parallel_error <- function(results, context) {
+  failed <- vapply(results, inherits, logical(1), what = "try-error")
+  if (any(failed)) {
+    messages <- vapply(results[failed], function(x) {
+      condition <- attr(x, "condition")
+      if (is.null(condition)) as.character(x) else conditionMessage(condition)
+    }, character(1))
+    stop(sprintf("%s worker failure: %s", context, paste(messages, collapse = " | ")), call. = FALSE)
+  }
+}
+
 #' LineageMap main function: build tree with barcode, spatial coordinates and gene expression states
 #'
 #' @param muts lineage barcode matrix
@@ -103,6 +114,7 @@ FindBestTree <- function(muts,meta, labels, state_lineages, newick_lookup = NULL
     function(chain_id) run_chain(chain_id, seeds, muts, meta, state_lineages, maxIter = maxIter,lambda_restart = lambda_values[chain_id],lambda1 = lambda1,lambda2 = lambda2,alpha = alpha),
     mc.cores = n_chains
   )
+  stop_on_parallel_error(results, "Local-search chain")
   #browser()
   # Find best chain
   best_idx <- which.max(sapply(results, function(x) x$max_likelihood))
@@ -168,6 +180,7 @@ Build_LineageMap_parallel <- function(muts, meta, state_lineages,
       return(list(single = TRUE, name = dt$group_name[i], label = substr(labels_sub, 6, nchar(labels_sub))))
     }
   }, mc.cores = outer_cores)
+  stop_on_parallel_error(subtree_list, "Subtree reconstruction")
 
   # Update singletons
   for (sub in subtree_list) {
@@ -237,6 +250,7 @@ Build_LineageMap_pd <- function(muts, meta, state_lineages,
       return(list(single = TRUE, name = dt$group_name[i], label = labels_sub))
     }
   }, mc.cores = outer_cores)
+  stop_on_parallel_error(subtree_list, "Subtree reconstruction")
 
   # Update singletons
   for (sub in subtree_list) {
