@@ -617,7 +617,6 @@ LikelihoodCal_ST <- function(tree, muts, cell_state_labels, state_lineages, loc,
     }
   }
 
-  spatial_loss <- 0
   ## --- MESSAGE PASSING: locations ---
   # --- Parameters for Brownian spatial model ---
   sigma2 <- 1.0   # diffusion variance per unit branch length
