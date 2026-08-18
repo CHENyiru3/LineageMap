@@ -534,7 +534,7 @@ LikelihoodCal_ST <- function(tree, muts, cell_state_labels, state_lineages, loc,
 
   # extend mutation table for internal nodes
   allele_unique <- unique(unlist(muts))
-  muts_internal <- matrix("0", length(nodes_internal), N_char,
+  muts_internal <- matrix(0, length(nodes_internal), N_char,
                           dimnames = list(NULL, colnames(muts)))
   muts <- rbind(muts, muts_internal)
   internal_lookup <- data.frame(node = numeric(), index = numeric())
@@ -618,7 +618,6 @@ LikelihoodCal_ST <- function(tree, muts, cell_state_labels, state_lineages, loc,
   }
 
   spatial_loss <- 0
-  if (lambda2 != 0) {
   ## --- MESSAGE PASSING: locations ---
   # --- Parameters for Brownian spatial model ---
   sigma2 <- 1.0   # diffusion variance per unit branch length
@@ -648,23 +647,6 @@ LikelihoodCal_ST <- function(tree, muts, cell_state_labels, state_lineages, loc,
     logdet <- 2 * sum(log(diag(L)))
     return(-0.5 * (2 * log(2*pi) + logdet + quad))
   }
-  stabilize_spatial_covariance <- function(S) {
-    if (!all(is.finite(S))) {
-      stop("Spatial covariance contains non-finite values")
-    }
-    S <- (S + t(S)) / 2
-    covariance_scale <- max(1, max(abs(S)))
-    jitter <- .Machine$double.eps * covariance_scale
-    min_eigenvalue <- min(eigen(S, symmetric = TRUE, only.values = TRUE)$values)
-    if (min_eigenvalue < -jitter) {
-      stop(sprintf("Spatial covariance is materially non-positive-definite (minimum eigenvalue %.17g)", min_eigenvalue))
-    }
-    if (min_eigenvalue <= 0) {
-      S <- S + diag(jitter - min_eigenvalue, nrow(S))
-    }
-    S
-  }
-
   # Upward Brownian message passing and log-likelihood accumulation
   spatial_loglik <- 0.0
 
@@ -673,7 +655,6 @@ LikelihoodCal_ST <- function(tree, muts, cell_state_labels, state_lineages, loc,
   if (any(!is.finite(edge_len))) {
     stop("Spatial likelihood requires finite branch lengths")
   }
-  edge_len[edge_len < 0] <- 0
 
   for (node in nodes_internal) {
     child_rows <- tree$edge[tree$edge[,1] == node, , drop = FALSE]
@@ -687,7 +668,6 @@ LikelihoodCal_ST <- function(tree, muts, cell_state_labels, state_lineages, loc,
       e_idx <- which(tree$edge[,1] == node & tree$edge[,2] == cnode)[1]
       t_vc  <- edge_len[e_idx]
       S_c_to_v <- m_cov[[cnode]] + diag(sigma2 * t_vc, 2)
-      S_c_to_v <- stabilize_spatial_covariance(S_c_to_v)
       # contribution to parent info
       #print(S_c_to_v)
       S_inv <- safe_solve(S_c_to_v)
@@ -695,7 +675,6 @@ LikelihoodCal_ST <- function(tree, muts, cell_state_labels, state_lineages, loc,
       eta_v    <- eta_v + S_inv %*% m_mean[[cnode]]
     }
     S_v <- solve(Lambda_v)
-    S_v <- stabilize_spatial_covariance(S_v)
     m_v <- as.vector(S_v %*% eta_v)
     m_mean[[node]] <- m_v
     m_cov [[node]] <- S_v
@@ -709,7 +688,6 @@ LikelihoodCal_ST <- function(tree, muts, cell_state_labels, state_lineages, loc,
       e_idx <- which(tree$edge[,1] == node & tree$edge[,2] == cnode)[1]
       t_vc  <- edge_len[e_idx]
       S_c_to_v <- m_cov[[cnode]] + diag(sigma2 * t_vc, 2)
-      S_c_to_v <- stabilize_spatial_covariance(S_c_to_v)
       spatial_loglik <- spatial_loglik + log_dmvnorm_iso(m_mean[[cnode]], m_v, S_c_to_v)
     }
   }
@@ -717,12 +695,10 @@ LikelihoodCal_ST <- function(tree, muts, cell_state_labels, state_lineages, loc,
   # Root prior integration
   root <- max(nodes_internal)
   S_root_int <- m_cov[[root]] + Sigma0
-  S_root_int <- stabilize_spatial_covariance(S_root_int)
   spatial_loglik <- spatial_loglik + log_dmvnorm_iso(m_mean[[root]], mu0, S_root_int)
 
   # If you want base-2 logs to match the rest:
   spatial_loss <- spatial_loglik / log(2)
-  }
 
   ## --- Compute proper state transition likelihood ---
   if (nrow(state_transitions) > 0) {
